@@ -31,13 +31,109 @@ PUT /movies/{id}
 DELETE /movies/{id}
 
 
-## PROGRAM CODE (Main Files):
-### application.properties
+## PROGRAM CODE:
+## pom.xml
+```
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+	<parent>
+		<groupId>org.springframework.boot</groupId>
+		<artifactId>spring-boot-starter-parent</artifactId>
+		<version>4.0.6</version>
+		<relativePath/> <!-- lookup parent from repository -->
+	</parent>
+	<groupId>com.example</groupId>
+	<artifactId>movie</artifactId>
+	<version>0.0.1-SNAPSHOT</version>
+	<name>movie</name>
+	<description/>
+	<url/>
+	<licenses>
+		<license/>
+	</licenses>
+	<developers>
+		<developer/>
+	</developers>
+	<scm>
+		<connection/>
+		<developerConnection/>
+		<tag/>
+		<url/>
+	</scm>
+	<properties>
+		<java.version>17</java.version>
+	</properties>
+	<dependencies>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-h2console</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-data-jpa</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-webmvc</artifactId>
+		</dependency>
+
+		<dependency>
+			<groupId>com.h2database</groupId>
+			<artifactId>h2</artifactId>
+			<scope>runtime</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-data-jpa-test</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-webmvc-test</artifactId>
+			<scope>test</scope>
+		</dependency>
+	</dependencies>
+
+	<build>
+		<plugins>
+			<plugin>
+				<groupId>org.springframework.boot</groupId>
+				<artifactId>spring-boot-maven-plugin</artifactId>
+			</plugin>
+		</plugins>
+	</build>
+
+</project>
+
+```
+## application.properties
+```
+spring.application.name=movie
+
 spring.datasource.url=jdbc:h2:mem:testdb
 spring.datasource.driverClassName=org.h2.Driver
+spring.datasource.username=sa
+spring.datasource.password=
+
+spring.jpa.database-platform=org.hibernate.dialect.H2Dialect
 spring.jpa.hibernate.ddl-auto=update
 spring.jpa.show-sql=true
-### Movie.java
+
+spring.h2.console.enabled=true
+spring.h2.console.path=/h2-console
+
+```
+## Movie.java
+```
+package com.example.movies.model;
+
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
 
 @Entity
 public class Movie {
@@ -46,20 +142,53 @@ public class Movie {
     private Long id;
     private String title;
     private String genre;
-    private int year;
+    @Column(name = "release_year")
+    private int releaseYear;
     private double rating;
 
-    // Getters and Setters
+    public Long getId() { return id; }
+    public void setId(Long id) { this.id = id; }
+    public String getTitle() { return title; }
+    public void setTitle(String title) { this.title = title; }
+    public String getGenre() { return genre; }
+    public void setGenre(String genre) { this.genre = genre; }
+    public int getReleaseYear() { return releaseYear; }
+    public void setReleaseYear(int releaseYear) { this.releaseYear = releaseYear; }
+    public double getRating() { return rating; }
+    public void setRating(double rating) { this.rating = rating; }
 }
-### MovieRepository.java
-java
-Copy
-Edit
-public interface MovieRepository extends JpaRepository<Movie, Long> {}
-### MovieController.java
+
+```
+## MovieRepository.java
+```
+package com.example.movies.repository;
+
+import com.example.movies.model.Movie;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
+
+@Repository
+public interface MovieRepository extends JpaRepository<Movie, Long> {
+}
+
+```
+
+## MovieController.java
+```
+package com.example.movies.controller;
+
+import com.example.movies.model.Movie;
+import com.example.movies.repository.MovieRepository;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+
 @RestController
 @RequestMapping("/movies")
 public class MovieController {
+
     @Autowired
     private MovieRepository repo;
 
@@ -85,17 +214,61 @@ public class MovieController {
         return repo.findById(id).map(movie -> {
             movie.setTitle(movieDetails.getTitle());
             movie.setGenre(movieDetails.getGenre());
-            movie.setYear(movieDetails.getYear());
+            movie.setReleaseYear(movieDetails.getReleaseYear());
             movie.setRating(movieDetails.getRating());
             return ResponseEntity.ok(repo.save(movie));
         }).orElse(ResponseEntity.notFound().build());
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteMovie(@PathVariable Long id) {
+    public ResponseEntity<Object> deleteMovie(@PathVariable Long id) {
         return repo.findById(id).map(movie -> {
             repo.delete(movie);
             return ResponseEntity.ok().build();
         }).orElse(ResponseEntity.notFound().build());
     }
 }
+
+```
+## Output:
+## POST /movies
+
+<img width="1283" height="835" alt="Screenshot 2026-06-07 134341" src="https://github.com/user-attachments/assets/52e2591f-5a88-4794-bb5c-8946b90c796d" />
+
+
+## GET /movies
+<img width="1281" height="837" alt="Screenshot 2026-06-07 134359" src="https://github.com/user-attachments/assets/d0a528bf-89f8-401f-b6ae-3f5686867c2a" />
+
+
+
+## PUT /movies/{id}
+<img width="1278" height="833" alt="Screenshot 2026-06-07 134414" src="https://github.com/user-attachments/assets/3f417c8b-919f-49f3-a723-009f98509f67" />
+
+
+
+## DELETE /movies/{id}
+<img width="1285" height="837" alt="Screenshot 2026-06-07 134429" src="https://github.com/user-attachments/assets/5b15b33f-ae25-4232-9044-79df3657639b" />
+
+
+
+
+
+## Result:
+Thus the development of a Spring Boot application to store and retrieve data from a Movies database is completed successfully
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
